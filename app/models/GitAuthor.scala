@@ -2,7 +2,7 @@ package models
 
 case class GitAuthor(name: String, email: String)
 
-object GitAuthor {
+object GitAuthor1 {
   private def clearAuthorName(name: String): String = name.replace("Author: ", "").trim
 
   private def clearAuthorEmail(email: String): String = email.replaceAll("\\>","")
