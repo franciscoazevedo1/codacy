@@ -2,19 +2,19 @@
  * This template takes a single argument, a String containing a
  * message to display.
  *@
-@(message: String)
+@import HomeController.SearchForm
+@import helper._
+@(form: Form[SearchForm])(implicit request: RequestHeader, messagesProvider: MessagesProvider)
 
 @*
  * Call the `main` template with two arguments. The first
  * argument is a `String` with the title of the page, the second
  * argument is an `Html` object containing the body of the page.
  *@
-@main("Welcome to Play") {
-
-    @*
-     * Get an `Html` object by calling the built-in Play welcome
-     * template and passing a `String` message.
-     *@
-    @welcome(message, style = "scala")
-
+@main("Codacy Git history app") {
+  @helper.form(action = routes.HomeController.search()) {
+   @inputText(form("gitHubUrl"))
+  <input type="submit" value="Submit">
+ }
 }
+

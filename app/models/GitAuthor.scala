@@ -9,9 +9,10 @@ object GitAuthor1 {
 
   def fromString(commitLogAuthor: String): GitAuthor = {
     val listAuthorCommit = commitLogAuthor.split("<").toList
+    println(s"AUTHOR: $listAuthorCommit")
     listAuthorCommit match {
       case h :: t :: Nil => GitAuthor(clearAuthorName(h), clearAuthorEmail(t))
-      case _ => throw new Exception("Failed parting author name")
+      case _ => throw new Exception(s"Failed parting author name $listAuthorCommit")
     }
   }
 }
