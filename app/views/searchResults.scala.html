@@ -10,7 +10,8 @@
 * argument is an `Html` object containing the body of the page.
 *@
 @main("Ola") {
-    @for(commit  <- message.filter(_.isDefined)){
+    @for(commit  <- message.filter(_.isDefined).take(10)){
         <p>@commit</p>
     }
+    // button that says next and take us to the next ten.
 }

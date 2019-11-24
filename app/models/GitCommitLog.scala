@@ -3,12 +3,15 @@ package models
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import sys.process._
+import play.api.libs.json.{JsObject, JsPath, JsValue, Reads}
+import play.api.libs.functional.syntax._
+import play.libs.Json
 
+import sys.process._
 
 case class GitCommitLog(merge: Option[String], commit: GitCommit,  author: GitAuthor, date: LocalDateTime, description: Option[String])
 
-object GitCommitLog1 {
+object GitCommitLog {
   private def dateFromCommitString(dateString: String): LocalDateTime = {
     val DATE_FORMAT = "E MMM d HH:mm:ss yyyy Z"
     val LOCAL_DATE_TIME_FORMATTER =  DateTimeFormatter.ofPattern(DATE_FORMAT)
@@ -47,7 +50,6 @@ object GitCommitLog1 {
   }
 
   def fromString(commitString: String): Option[GitCommitLog] = {
-    println(commitString)
     val commitInList = commitString.split("\n").filterNot(_ == "").toList.map{_.trim}.filterNot(_ == "")
 
     commitInList match {
@@ -83,5 +85,7 @@ object GitCommitLog1 {
         println(s"ERROR Parsing $commitString")
         None
     }
+
   }
+
 }

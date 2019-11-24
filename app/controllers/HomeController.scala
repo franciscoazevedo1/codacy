@@ -1,21 +1,25 @@
 package controllers
 
+import java.time.LocalDateTime
+
 import controllers.HomeController.SearchForm
 import javax.inject._
-import models.GitCommitLog1
+import models.{GitAuthor, GitCommit, GitCommitLog, GitHubAnswer, GitHubAnswerList, GitHubApi}
 import play.api.data.Form
 import play.api.mvc._
 import play.api.data.Forms._
 import play.api.i18n.I18nSupport
+import play.api.libs.json.JsValue
+import play.api.libs.ws.WSClient
 
-import scala.concurrent.Future
-
+import scala.concurrent.{ExecutionContext, Future}
+import ExecutionContext.Implicits.global
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
  */
 @Singleton
-class HomeController @Inject()(cc: ControllerComponents) extends AbstractController(cc)  with I18nSupport{
+class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends AbstractController(cc)  with I18nSupport{
   val searchForm: Form[SearchForm] = Form(
     mapping(
       "gitHubUrl" -> text
@@ -31,11 +35,26 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
     Ok(views.html.index(searchForm))
   }
 
-  def search = Action { implicit request =>
+  def search = Action.async { implicit request =>
     searchForm.bindFromRequest.fold(
-      errorForm => BadRequest(s"OLA $errorForm"),
-      searchWord =>
-        Ok(views.html.searchResults(GitCommitLog1.begin(searchWord.gitHubUrl)))
+      errorForm => Future.successful(BadRequest(s"Error in the form: $errorForm")),
+      searchWord => {
+        for{
+          a <- ws.url(GitHubApi.fromString(searchWord.gitHubUrl).get.gitHubListCommitsUrls).get()
+          as = a.json.validateOpt[JsValue]
+          list  = a.json.as[List[JsValue]].map { js =>
+            Some(GitCommitLog(
+              None,
+              GitCommit((js \ "sha").as[String], None),
+              GitAuthor((js \ "commit" \ "author" \ "name").as[String], (js \ "commit" \ "author" \ "email").as[String]),
+              (js \ "commit" \ "author" \ "date").as[LocalDateTime],
+              Some((js \ "commit" \ "message").as[String])
+            ))
+          }
+          _ = list.foreach(println)
+        } yield Ok(views.html.searchResults(list))
+
+      }
     )
   }
 
