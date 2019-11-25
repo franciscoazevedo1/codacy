@@ -3,16 +3,14 @@ package models
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import play.api.libs.json.{JsObject, JsPath, JsValue, Reads}
-import play.api.libs.functional.syntax._
-import play.libs.Json
-
 import sys.process._
 
-case class GitCommitLog(merge: Option[String], commit: GitCommit,  author: GitAuthor, date: LocalDateTime, description: Option[String])
+import scala.concurrent.{ExecutionContext, Future}
+import ExecutionContext.Implicits.global
+case class GitCommitLog(merge: Option[String], commit: GitCommit,  author: GitAuthor, date: LocalDateTime, description: String)
 
 object GitCommitLog {
-  private def dateFromCommitString(dateString: String): LocalDateTime = {
+  def dateFromCommitString(dateString: String): LocalDateTime = {
     val DATE_FORMAT = "E MMM d HH:mm:ss yyyy Z"
     val LOCAL_DATE_TIME_FORMATTER =  DateTimeFormatter.ofPattern(DATE_FORMAT)
     val cleanDateString = dateString.replaceAll("Date:   ", "")
@@ -38,15 +36,17 @@ object GitCommitLog {
 
   def fromGitUrl(gitUrl: String) = {
       val folderName = gitUrl.split("\\/").last.replace(".git", "")
-      s"git clone $gitUrl".#&&(s"git --git-dir $folderName/.git log") !!
+      Future.successful(s"git clone $gitUrl".#&&(s"git --git-dir $folderName/.git log") !!)
 
   }
 
-  def begin(gitUrl: String) = {
-    val commits = fromGitUrl(gitUrl)
-    val listOfCommits = fromOriginalString(commits)
-    removeDir(gitUrl)
-    listOfCommits
+  def start(gitUrl: String) = {
+    for {
+      commits <- fromGitUrl(gitUrl)
+      listOfCommits = fromOriginalString(commits)
+      _ = removeDir(gitUrl)
+    } yield listOfCommits
+
   }
 
   def fromString(commitString: String): Option[GitCommitLog] = {
@@ -56,29 +56,19 @@ object GitCommitLog {
       case hash :: merge :: author :: date :: tail if !commitInList.filter(_.contains("Merge")).isEmpty =>
         Some(GitCommitLog(
           mergeFromCommitString(merge),
-          GitCommit1.fromString(hash),
-          GitAuthor1.fromString(author),
+          GitCommit.fromString(hash),
+          GitAuthor.fromString(author),
           dateFromCommitString(date),
-          Some(descriptionFromCommitString(tail))
+          descriptionFromCommitString(tail)
         ))
 
       case hash :: author :: date :: tail  =>
         Some(GitCommitLog(
           None,
-          GitCommit1.fromString(hash),
-          GitAuthor1.fromString(author),
+          GitCommit.fromString(hash),
+          GitAuthor.fromString(author),
           dateFromCommitString(date),
-          Some(descriptionFromCommitString(tail))
-        ))
-
-
-      case hash :: author :: date :: Nil =>
-        Some(GitCommitLog(
-          None,
-          GitCommit1.fromString(hash),
-          GitAuthor1.fromString(author),
-          dateFromCommitString(date),
-          None
+          descriptionFromCommitString(tail)
         ))
 
       case _ =>

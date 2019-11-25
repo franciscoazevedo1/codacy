@@ -14,4 +14,5 @@ libraryDependencies ++= Seq( jdbc , ehcache , ws , specs2 % Test , guice )
 
 unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )
 
-libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.2"
+libraryDependencies ++= Seq( "org.scalaj" %% "scalaj-http" % "2.4.2",
+  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % "test")

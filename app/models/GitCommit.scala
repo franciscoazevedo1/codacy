@@ -2,7 +2,7 @@ package models
 
 case class GitCommit(hash: String, tags: Option[List[String]])
 
-object GitCommit1 {
+object GitCommit {
   private def fromStringToTagList(tagsListInString: String): List[String] = {
     tagsListInString
       .replaceAll("\\)","")
