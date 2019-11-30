@@ -8,9 +8,58 @@
 * Call the `main` template with two arguments. The first
 * argument is a `String` with the title of the page, the second
 * argument is an `Html` object containing the body of the page.
+@for(commit  <- message.filter(_.isDefined)){
+<p>@commit</p>
+}
 *@
 @main("Ola") {
-    @for(commit  <- message.filter(_.isDefined)){
-        <p>@commit</p>
-    }
+
+    <html>
+        <head>
+            <style type="text/css" media="print">
+                    div.no_print {display: none; }
+            </style>
+            <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+            <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.3.min.js"></script>
+
+            <script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+
+            <script type="text/javascript">
+                    $(document).ready(function(){
+                        $("#mytable").DataTable();
+                    });
+            </script>
+
+        </head>
+        <body>
+
+            <table id="mytable" class = "display" >
+                <thead>
+                    <tr>
+                        <td><b>commit</b></td>
+                        <td><b>author</b></td>
+                        <td><b>description</b></td>
+                        <td><b>date</b></td>
+                        <td><b>mergeCommit</b></td>
+
+                    </tr>
+                </thead>
+
+                @for(commits <- message.filter(_.isDefined)){
+                    <tr>
+                        <td>@commits.get.commit</td>
+                        <td>@commits.get.author</td>
+                        <td>@commits.get.description</td>
+                        <td>@commits.get.date</td>
+                        <td>@commits.get.merge</td>
+                    </tr>
+                }
+
+
+            </table>
+            <hr>
+
+        </body>
+    </html>
+
 }

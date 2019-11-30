@@ -6,6 +6,7 @@ import controllers.HomeController.SearchForm
 import javax.inject._
 import models.errors.ErrorParsingCommit
 import models.{GitCommitLog, GitHubAnswer, GitHubApi}
+import play.api.cache.AsyncCacheApi
 import play.api.data.Form
 import play.api.mvc._
 import play.api.data.Forms._
@@ -18,7 +19,7 @@ import ExecutionContext.Implicits.global
 
 
 @Singleton
-class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends AbstractController(cc) with I18nSupport{
+class HomeController @Inject()(ws: WSClient, cc : ControllerComponents, cache: AsyncCacheApi) extends AbstractController(cc) with I18nSupport{
   type ListCommitLogs = List[Option[GitCommitLog]]
 
   val searchForm: Form[SearchForm] = Form(
@@ -53,8 +54,10 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
       errorForm => Future.successful(BadRequest(s"Error in the form: $errorForm")),
       searchWord => {
         (for{
+
             a <- ws.url(GitHubApi.fromString(searchWord.gitHubUrl).get.gitHubListCommitsUrls).get()
             list = a.json.as[List[GitHubAnswer]].map { _.toGitCommitLog }
+            _ = cache.set("searchResults", list)
           } yield Ok(views.html.searchResults(list))
          ).recoverWith {
           case _=>
@@ -67,7 +70,6 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
       }
     )
   }
-
 }
 
 object HomeController {
