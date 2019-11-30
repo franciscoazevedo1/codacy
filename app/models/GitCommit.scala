@@ -1,6 +1,8 @@
 package models
 
-case class GitCommit(hash: String, tags: Option[List[String]])
+case class GitCommit(hash: String, tags: Option[List[String]]) {
+  override def toString: String = s"$hash ${tags.fold(""){t => s"- tags: ${t.mkString(" - ")}"}}"
+}
 
 object GitCommit {
   private def fromStringToTagList(tagsListInString: String): List[String] = {

@@ -1,6 +1,8 @@
 package models
 
-case class GitAuthor(name: String, email: String)
+case class GitAuthor(name: String, email: String) {
+  override def toString: String = s"$name - $email"
+}
 
 object GitAuthor {
   private def clearAuthorName(name: String): String = name.replace("Author: ", "").trim
