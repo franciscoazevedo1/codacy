@@ -9,11 +9,11 @@ object GitAuthor {
 
   private def clearAuthorEmail(email: String): String = email.replaceAll("\\>","")
 
-  def fromString(commitLogAuthor: String): GitAuthor = {
+  def fromString(commitLogAuthor: String): Option[GitAuthor] = {
     val listAuthorCommit = commitLogAuthor.split("<").toList
     listAuthorCommit match {
-      case h :: t :: Nil => GitAuthor(clearAuthorName(h), clearAuthorEmail(t))
-      case _ => throw new Exception(s"Failed parting author name $listAuthorCommit")
+      case h :: t :: Nil => Some(GitAuthor(clearAuthorName(h), clearAuthorEmail(t)))
+      case _ => None
     }
   }
 }

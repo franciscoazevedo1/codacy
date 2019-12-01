@@ -4,17 +4,19 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import sys.process._
-
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
-case class GitCommitLog(merge: Option[String], commit: GitCommit,  author: GitAuthor, date: LocalDateTime, description: String)
+import scala.util.Try
+case class GitCommitLog(merge: Option[String], commit: GitCommit,  author: GitAuthor, date: Option[LocalDateTime], description: Option[String])
 
 object GitCommitLog {
-  def dateFromCommitString(dateString: String): LocalDateTime = {
+  def dateFromCommitString(dateString: String): Option[LocalDateTime] = {
     val DATE_FORMAT = "E MMM d HH:mm:ss yyyy Z"
     val LOCAL_DATE_TIME_FORMATTER =  DateTimeFormatter.ofPattern(DATE_FORMAT)
     val cleanDateString = dateString.replaceAll("Date:   ", "")
-    LocalDateTime.parse(cleanDateString, LOCAL_DATE_TIME_FORMATTER)
+    Try {
+      LocalDateTime.parse(cleanDateString, LOCAL_DATE_TIME_FORMATTER)
+    }.toOption
   }
 
   private def descriptionFromCommitString(description: List[String]): String =
@@ -24,7 +26,7 @@ object GitCommitLog {
     Some(mergeString.replace("Merge: ", ""))
 
   def fromOriginalString(originalCommitsString: String): List[Option[GitCommitLog]] = {
-    val listOfCommits = originalCommitsString.trim.split("commit").filterNot(_ == "").toList
+    val listOfCommits = originalCommitsString.trim.split("commit").filterNot(_ == "").toList.take(100) // to keep the same amount of logs that come from GitHubApi
     listOfCommits.map { string =>
       fromString(string) }
   }
@@ -41,11 +43,16 @@ object GitCommitLog {
   }
 
   def start(gitUrl: String) = {
-    for {
+    (for {
       commits <- fromGitUrl(gitUrl)
       listOfCommits = fromOriginalString(commits)
       _ = removeDir(gitUrl)
-    } yield listOfCommits
+    } yield listOfCommits).recover{
+      case e: Throwable =>
+        removeDir(gitUrl)
+        println(e.getStackTrace + e.getMessage + e.printStackTrace())
+        throw e
+    }
 
   }
 
@@ -57,18 +64,18 @@ object GitCommitLog {
         Some(GitCommitLog(
           mergeFromCommitString(merge),
           GitCommit.fromString(hash),
-          GitAuthor.fromString(author),
+          GitAuthor.fromString(author).getOrElse(GitAuthor("None", "none")),
           dateFromCommitString(date),
-          descriptionFromCommitString(tail)
+          Some(descriptionFromCommitString(tail))
         ))
 
       case hash :: author :: date :: tail  =>
         Some(GitCommitLog(
           None,
           GitCommit.fromString(hash),
-          GitAuthor.fromString(author),
+          GitAuthor.fromString(author).getOrElse(GitAuthor("None", "none")),
           dateFromCommitString(date),
-          descriptionFromCommitString(tail)
+          Some(descriptionFromCommitString(tail))
         ))
 
       case _ =>

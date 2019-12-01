@@ -38,7 +38,7 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
         case e: ErrorParsingSearch => BadRequest(e.msg)
         case e: Throwable =>
           println(s"${e.getStackTrace}")
-          InternalServerError("Something went wrong")
+          InternalServerError(s"Something went wrong ${e.getMessage}")
       }
     }
   }
@@ -61,7 +61,8 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
             list = a.json.as[List[GitHubAnswer]].map { _.toGitCommitLog }
           } yield Ok(views.html.searchResults(list))
          ).recoverWith {
-          case _ =>
+          case e: Throwable =>
+            println(s"RECOVERING ${e.getMessage}")
             for {
               listOfCommits <- GitCommitLog.start(searchWord.gitHubUrl)
             } yield Ok(views.html.searchResults(listOfCommits))
