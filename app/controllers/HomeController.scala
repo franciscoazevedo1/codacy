@@ -1,16 +1,15 @@
 package controllers
 
 
-import com.typesafe.play.cachecontrol.ResponseServeActions.Validate
 import controllers.HomeController.SearchForm
 import javax.inject._
-import models.errors.ErrorParsingCommit
-import models.{GitCommitLog, GitHubAnswer, GitHubApi}
+import models.errors.Errors.{ErrorInForm, ErrorParsingCommit, ErrorParsingSearch}
+import models.{GitCommitLog, GitHubAnswer, GitHubApi, GitHubApiRequest}
+import play.api.cache.AsyncCacheApi
 import play.api.data.Form
 import play.api.mvc._
 import play.api.data.Forms._
 import play.api.i18n.I18nSupport
-import play.api.libs.json.{JsSuccess, Json}
 import play.api.libs.ws.WSClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,9 +34,11 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
     override def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       block(request).recover {
         case e: ErrorParsingCommit => BadRequest(e.msg)
+        case e: ErrorInForm => BadRequest(s"${e.msg} - ${e.errorForm.errors}")
+        case e: ErrorParsingSearch => BadRequest(e.msg)
         case e: Throwable =>
           println(s"${e.getStackTrace}")
-          InternalServerError("Something went wrong")
+          InternalServerError(s"Something went wrong ${e.getMessage}")
       }
     }
   }
@@ -46,18 +47,22 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
     Ok(views.html.index(searchForm))
   }
 
-
-
   def search = ActionExceptionHandler.async { implicit request =>
     searchForm.bindFromRequest.fold(
-      errorForm => Future.successful(BadRequest(s"Error in the form: $errorForm")),
+      errorForm => Future.failed(throw ErrorInForm(errorForm = errorForm)),
       searchWord => {
+        val parsedSearchWord: Future[GitHubApiRequest] = GitHubApi.fromString(searchWord.gitHubUrl) match {
+          case Some(r) => Future.successful(r)
+          case None => Future.failed(throw new ErrorParsingSearch)
+        }
         (for{
-            a <- ws.url(GitHubApi.fromString(searchWord.gitHubUrl).get.gitHubListCommitsUrls).get()
+            searchRepoName <- parsedSearchWord
+            a <- ws.url(searchRepoName.gitHubListCommitsUrls).get()
             list = a.json.as[List[GitHubAnswer]].map { _.toGitCommitLog }
           } yield Ok(views.html.searchResults(list))
          ).recoverWith {
-          case _=>
+          case e: Throwable =>
+            println(s"RECOVERING ${e.getMessage}")
             for {
               listOfCommits <- GitCommitLog.start(searchWord.gitHubUrl)
             } yield Ok(views.html.searchResults(listOfCommits))
@@ -67,7 +72,6 @@ class HomeController @Inject()(ws: WSClient, cc : ControllerComponents) extends 
       }
     )
   }
-
 }
 
 object HomeController {

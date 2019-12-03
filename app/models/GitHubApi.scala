@@ -10,7 +10,7 @@ case class GitHubAnswer(name: String, email: String, date: LocalDateTime, sha: S
   def toGitCommitLog: Option[GitCommitLog] = {
     val gitAuthor = GitAuthor(name, email)
     val gitCommit = GitCommit(sha, None)
-    Some(GitCommitLog(None, gitCommit, gitAuthor, date, message))
+    Some(GitCommitLog(None, gitCommit, gitAuthor, Some(date), Some(message)))
   }
 
   def fromString(string: String) =
@@ -28,8 +28,7 @@ object GitHubAnswer {
 }
 
 case class GitHubApiRequest(owner: String, repo: String) {
-  val gitHubListCommitsUrls = s"https://api.github.com/repos/$owner/$repo/commits"
-
+  val gitHubListCommitsUrls = s"https://api.github.com/repos/$owner/$repo/commits?per_page=100&type=owner"
 }
 
 object GitHubApi {

@@ -3,8 +3,7 @@ import java.time.LocalDateTime
 import models.{GitAuthor, GitCommit, GitCommitLog}
 import org.scalatestplus.play.PlaySpec
 
-import scala.concurrent.{ExecutionContext, Future}
-import ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext}
 
 
 class GitCommitSpec extends PlaySpec {
@@ -23,11 +22,11 @@ class GitCommitSpec extends PlaySpec {
 
   "A GitAuthor" must {
     "have an author name" in {
-      gitAuthor.name mustBe "franciscoazevedo"
+      gitAuthor.get.name mustBe "franciscoazevedo"
     }
 
     "have an author email" in {
-      gitAuthor.email mustBe "franciscoovazevedo@gmail.com"
+      gitAuthor.get.email mustBe "franciscoovazevedo@gmail.com"
     }
   }
 
@@ -56,7 +55,7 @@ class GitCommitSpec extends PlaySpec {
     }
 
     "The commit message should be equal to the one from the commit string" in {
-      commitLog.get.description mustBe("solved FINALLY")
+      commitLog.get.description.get mustBe("solved FINALLY")
     }
   }
 }
